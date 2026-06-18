@@ -1,265 +1,308 @@
-import React, { useState, useEffect } from 'react';
-import { Play, RotateCcw, CheckCircle2, XCircle, ChevronRight, BookOpen } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>國立臺東大學 - 保健食品期末測驗</title>
+  
+  <!-- 載入 Tailwind CSS 來處理排版與設計 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- 載入 React 與 Babel (讓瀏覽器能直接執行 React) -->
+  <!-- 已經移除 crossorigin 屬性，讓本地端 (file://) 雙擊打開也能正常運作 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50">
+  <div id="root"></div>
 
-// 將 80 題題庫整理為陣列，修復了部分 OCR 錯字以確保最佳閱讀體驗
-const SOURCE_QUESTIONS = [
-  { id: 1, q: "以下哪一種保健功效評估，是現行 14 項功效中，極少數「僅以動物實驗模式」進行，未開放人體食用研究模式的評估方法？", opts: ["胃腸功能改善", "抗疲勞", "護肝功效（針對化學性肝損傷）", "延緩衰老"], ans: 2 },
-  { id: 2, q: "所謂的「分層試驗法 （Tiered Approach）」在健康食品安全評估中的意義為何？", opts: ["將受試動物分層飼養以避免干擾", "針對不同年齡層的人體進行試驗", "由基因毒性等體外試驗依序執行，並視結果評估後續活體動物試驗之必要性", "依產品售價分層決定試驗嚴格度"], ans: 2 },
-  { id: 3, q: "關於健康食品宣稱中有關「木糖醇」的牙齒保健功能，下列敘述何者有誤？", opts: ["有助於降低蛀牙的發生率", "有助於減少口腔內的牙菌斑", "有助於減少牙菌斑內突變形鏈球菌數量", "有助於減少牙周病"], ans: 3 },
-  { id: 4, q: "關於「紅麴健康食品規格標準」之規定，何者敘述不正確？", opts: ["每日攝取量所含 monacolin K 至少應達 4.8 毫克", "所含之橘黴素（citrinin）含量濃度應低於百萬分之二（2 ppm）", "產品除紅麴外之其他功效配方組成不得超過 20%", "應標示警語，不可與降血脂藥及葡萄柚合併使用"], ans: 2 },
-  { id: 5, q: "依據健康食品安全評估方法，動物實驗之對照組與試驗組在飼料設計上，應盡量保持何者近似等量？", opts: ["僅熱量", "僅蛋白質與脂肪", "僅維生素", "熱量、蛋白質、脂肪、礦物質及維生素"], ans: 3 },
-  { id: 6, q: "下列何種健康食品類別，必須進行「90 天餵食毒性試驗」？", opts: ["僅第一類", "僅第二類", "第一類與第二類", "第三類與第四類"], ans: 3 },
-  { id: 7, q: "健康食品之安全評估分類「第一類」是指下列何種情況？", opts: ["產品之原料為傳統食用且以通常加工食品形式供食者", "產品之原料非屬傳統食用者", "產品之原料為非通常加工製備者", "產品原料含有毒理學疑慮成分者"], ans: 0 },
-  { id: 8, q: "動物安全評估試驗應遵循優良實驗室操作規範，其英文簡稱為何？", opts: ["GMP", "GLP", "GHP", "GCP"], ans: 1 },
-  { id: 9, q: "安姆氏試驗 （Ames test）通常使用下列何種微生物作為指示菌種？", opts: ["沙門氏桿菌", "大腸桿菌", "金黃色葡萄球菌", "肉毒桿菌"], ans: 0 },
-  { id: 10, q: "食品安全性試驗中，所謂的「NOAEL」是指下列何者？", opts: ["無可見不良作用劑量", "最低可見不良作用劑量", "半數致死劑量", "每日容許攝取量"], ans: 0 },
-  { id: 11, q: "關於健康食品查驗登記的「第二軌（規格標準審查）」，目前公告僅開放哪兩項原料，只要成分達標即可確立保健功效，免除功效評估試驗？", opts: ["魚油與紅麴", "魚油與益生菌", "紅麴與燕麥", "益生菌與大豆異黃酮"], ans: 0 },
-  { id: 12, q: "在健康食品的安定性試驗中，若要估算包裝產品的儲藏期限常使用加速試驗，幾利用哪一種數值？", opts: ["Q10 值", "LD50 值", "D 值", "Z值"], ans: 0 },
-  { id: 13, q: "在健康食品的動物安全性評估中，若進行「體內基因毒性分析試驗」，每組至少需要幾隻動物？", opts: ["5隻", "10隻", "20隻", "50隻"], ans: 0 },
-  { id: 14, q: "若健康食品以「調節血糖」為保健功效，其人體臨床試驗通常會監測何種血液指標，以反映受試者過去 2~3 個月的長期血糖控制穩定度？", opts: ["空腹血糖值", "糖化血色素（HbA1c）", "胰島素耐受性", "尿糖值"], ans: 1 },
-  { id: 15, q: "申請健康食品查驗登記的產品，對其「保健功效評估報告」的審查要件，何者為非？", opts: ["試驗產品應是申請的最終產品", "人體食用研究者應有人體研究倫理審查委員會同意書", "動物實驗應有實驗動物照護及使用委員會或小組同意書", "應有二批結果報告，其中至少一批檢驗完成日期需在三年内"], ans: 3 },
-  { id: 16, q: "以下何者不是衛生福利部公告之健康食品保健功效項目？", opts: ["胃腸功能改善", "輔助調節血壓", "牙齒保健", "減肥"], ans: 3 },
-  { id: 17, q: "原「促進鐵可利用率保健功效評估方法」，近年已由衛生福利部修正更名為何？", opts: ["健康食品之輔助調節血鐵保健功效評估方法", "健康食品之預防貧血保健功效評估方法", "營養促進功效評估方法", "健康食品之補血保健功效評估方法"], ans: 0 },
-  { id: 18, q: "關於第二軌魚油類的健康食品規格審查標準，何者有誤？", opts: ["以傳統供食用之魚類萃取製成粉狀、膠囊或錠狀之食品", "可以與大蒜、紅麴等組成複方產品", "所含ω-3脂肪酸之純度應為百分之三十至五十", "可標示：「本產品可能有助於降低血中三酸甘油酯」"], ans: 1 },
-  { id: 19, q: "有關健康食品安全性評估之「第二類」產品，下列敘述何者正確？", opts: ["原料非屬傳統食用者", "須進行致癌性試驗", "免執行任何毒性試驗", "應進行基因毒性試驗與28 天餵食毒性試驗"], ans: 3 },
-  { id: 20, q: "進行 Ames test 時，除了觀察原試驗物質的毒性外，通常會加入何種物質以模擬哺乳動物體內的代謝活化反應？", opts: ["S9 混合物", "ATP 溶液", "肝醣", "輔酶 Q10"], ans: 0 },
-  { id: 21, q: "目前以「膠原蛋白」為主原料並通過健康食品認證之產品，其主要訴求法定保健功效通常為何？", opts: ["延緩衰老", "美白保濕", "骨質保健", "輔助調整過敏體質"], ans: 2 },
-  { id: 22, q: "裝飲用水之寶特瓶可能隨時間推移及溫度上升使得寶特瓶中塑化劑及何種物質釋放到水中，可能有害健康？", opts: ["銻", "砷", "鉻", "鉑"], ans: 0 },
-  { id: 23, q: "依據健康食品安全評估方法，若產品屬於第三類（非屬傳統食用者），其無可見不良作用劑量（NOAEL） 應大於或等於人體建議攝取量的多少倍？", opts: ["10 倍", "30 倍", "60 倍", "100 倍"], ans: 3 },
-  { id: 24, q: "健康食品安全評估分為四個類別，其中哪一類產品必須進行「最多項」的毒理測試？", opts: ["第一類", "第二類", "第四類", "第三類"], ans: 2 },
-  { id: 25, q: "下列何者不屬於國內「輔助調節血鐵保健功效評估方法」須檢測的指標？", opts: ["體脂肪變化", "紅血球指標", "發炎指標", "鐵營養相關血液生化指標"], ans: 0 },
-  { id: 26, q: "健康食品之功能性評估中，如使用動物試驗，試驗過程必須遵守下列何種法規規範？", opts: ["食品安全衛生管理法", "健康食品管理法", "動物保護法", "健康食品工廠良好作業規範"], ans: 2 },
-  { id: 27, q: "依據近年修正之「健康食品安全評估方法」，已經刪除並由其他試驗替代的動物試驗項目為下列何者？", opts: ["口服急毒性試驗", "致癌性試驗", "繁殖試驗", "基因毒性試驗"], ans: 0 },
-  { id: 28, q: "下列何種方法的數據不須要重覆至少 3 次才適合進行統計分析？", opts: ["順位法", "類別標示法", "直線標示法", "參考比較法"], ans: 0 },
-  { id: 29, q: "何者為健康食品管理法所稱之保健功效？a.增進民眾健康、減少疾病危害風險 b.具有實質科學證據之功效 c.治療、矯正人類疾病之效能 d.經中央主管機關公告者", opts: ["abc", "bcd", "acd", "abd"], ans: 3 },
-  { id: 30, q: "健康食品功效之宣稱及標示，下列哪一種敘述是不被允許的？", opts: ["敘述攝取特定營養素對人體生理結構之影響", "宣稱具有治療或矯正人類疾病之醫療效能", "提示可補充人體缺乏之營養素", "標示該產品具法定核可之保健功效"], ans: 1 },
-  { id: 31, q: "「無可見不良作用劑量（NOAEL）」通常可由下列哪一項毒性試驗的結果中推算求得？", opts: ["安姆氏試驗", "急性毒性試驗", "90天餵食毒性試驗", "微核試驗"], ans: 2 },
-  { id: 32, q: "若一項試驗物質在 Ames test 中，只有在加入 S9 mixture 的條件下才呈現陽性反應，這代表什麼意義？", opts: ["該物質本身具有強烈致突變性", "該物質的代謝產物具有致突變性", "該物質及其代謝物皆無致突變性", "S9 mixture 本身有毒"], ans: 1 },
-  { id: 33, q: "在評估化學物質急毒性的指標中，LD50代表的意義為何？", opts: ["最低致死劑量", "半數致死劑量", "最大無作用量", "每日容許攝取量"], ans: 1 },
-  { id: 34, q: "有一乳酸菌保健產品，其菌株為「自行篩選」自國人糞便者，欲申請健康食品認證，下列敘述何者錯誤？", opts: ["在毒理安全性分類上可直接歸屬為第一類", "申請時應附有菌株鑑定報告", "其安全性評估至少需歸屬為第二類或以上", "若菌株與藥品為相同來源，應與藥品適當區隔"], ans: 0 },
-  { id: 35, q: "下列哪一種植物性保健原料，在功效評估與營養宣稱上，絕對「不可」稱其為維生素 A的前驅物（無法在體內轉化為維生素 A）？", opts: ["β-胡蘿蔔素", "茄紅素", "隱黃素", "d-胡蘿蔔素"], ans: 1 },
-  { id: 36, q: "進行健康食品保健功效評估之「動物實驗」時，依規定每組動物至少為8隻；但若使用小白鼠（鼷鼠），每組至少需幾隻？", opts: ["5隻", "8隻", "10隻", "20隻"], ans: 2 },
-  { id: 37, q: "欲評估產品是否能「減少腸內有害菌」以改善胃腸功能，最常檢測下列何種菌作為不良指標？", opts: ["產氣莢膜梭菌", "雙岐桿菌", "嗜熱鏈球菌", "乾酪乳酸桿菌"], ans: 0 },
-  { id: 38, q: "關於健康食品安全評估之「第三類」產品，下列敘述何者正確？", opts: ["產品原料為傳統食用且以通常加工食品形式供食者", "應進行基因毒性、90天餵食毒性及致畸胎試驗", "僅需進行基因毒性與28天餵食毒性試驗", "必須進行致癌性試驗與繁殖試驗"], ans: 1 },
-  { id: 39, q: "某健康食品之人體建議攝食量為每天 1.2g，體重以60 kg 計算，而該產品之動物 NOAEL 值為 1.2g/kg，請問其安全邊際（MOS）為幾倍？", opts: ["30倍", "60倍", "100倍", "120倍"], ans: 1 },
-  { id: 40, q: "關於健康食品的安全性評估，下列敘述何者錯誤？", opts: ["最終產品的安全性分類需整體評估配方、製程、攝食量等", "對安全性分類有疑慮可事先向食藥署或查驗中心申請判定", "最終分類判定由健康食品審議小組決定", "只要原料通過農藥殘留檢驗，即可免除所有安全性試驗"], ans: 3 },
-  { id: 41, q: "當某一保健食品之建議每日攝取量較高，且屬於安全性第三類時，其安全邊際（MOS）至少應達到多少？", opts: ["30倍", "60倍", "100倍", "1000倍"], ans: 2 },
-  { id: 42, q: "執行健康食品的動物安全性評估時，依據規範，「90 天餵食毒性試驗」每個劑量組別至少需要多少隻實驗動物存活以供毒性評估？", opts: ["雄、雌各 5隻", "雄、雌各10隻", "雄、雌各20隻", "雄、雌各50隻"], ans: 1 },
-  { id: 43, q: "依據現行法規，申請健康食品安全性評估之「第四類（含有致癌物之類似物者）」，必須進行下列何種完整測試？", opts: ["僅需進行基因毒性試驗", "僅需進行 28 天餵食毒性試驗", "須進行基因毒性、90 天餵食毒性、致畸胎、繁殖試驗及致癌性試驗", "直接禁止申請，免做試驗"], ans: 2 },
-  { id: 44, q: "以下哪一種飽和脂肪酸比較不容易增加血膽固醇？", opts: ["肉豆蔻酸", "月桂酸", "棕櫚酸", "硬脂酸"], ans: 3 },
-  { id: 45, q: "下列何者不屬於「基因毒性試驗」評估的範疇？", opts: ["微生物基因突變分析", "體外哺乳類細胞染色體異常分析", "動物體內微核試驗", "28天餵食試驗"], ans: 3 },
-  { id: 46, q: "依現行健康食品安全評估方法，關於「動物體內基因毒性分析」，下列敘述何者正確？", opts: ["為所有類別產品必做的第一項試驗", "完全無法用體外試驗替代", "若體外測試評估有基因毒性者，應停止後續產品研發，不建議為健康食品", "僅針對第一類產品實施"], ans: 2 },
-  { id: 47, q: "健康食品安全性評估之基因毒性測試中，常使用的「安姆氏試驗（Ames test）」，主要使用的指示菌種為何？", opts: ["大腸桿菌", "枯草桿菌", "啤酒酵母菌", "沙門氏菌"], ans: 3 },
-  { id: 48, q: "依據「護肝保健功效評估方法」，下列何者不是可進行的肝損傷誘導模式？", opts: ["四氯化碳誘發化學性肝損傷", "酒精液態飼料誘導酒精性脂肪肝", "止痛藥物乙醯胺基苯酚誘導化學性肝炎損傷", "疲勞性肝損傷"], ans: 3 },
-  { id: 49, q: "第三類健康食品在安全評估時，其計算出的安全邊際（MOS）倍數應大於或等於多少？", opts: ["100倍", "60倍", "30倍", "10倍"], ans: 0 },
-  { id: 50, q: "健康食品安全性評估報告的審查要件中，病理組織切片檢驗報告應由何人判讀並簽名以示負責？", opts: ["實驗室操作技術員", "公司法務主管", "具有動物病理經驗之獸醫師或醫師", "衛生福利部審查委員"], ans: 2 },
-  { id: 51, q: "衛生福利部於近年最新公告新增的第 14項健康食品保健功效為何？", opts: ["改善視力保健", "膝關節保健", "舒緩壓力與情緒", "改善睡眠品質"], ans: 1 },
-  { id: 52, q: "在動物試驗中，實驗動物的福利越來越受重視，下列何者為 3R 原則中的「Refine（精緻化）」？", opts: ["完全不使用動物", "減少動物使用數量", "用電腦模擬代替活體", "降低動物在實驗過程中的痛苦與緊迫"], ans: 3 },
-  { id: 53, q: "急性毒性試驗 （LD50）主要觀察實驗動物在短時間內暴露於受試物質後，最直接的反應為何？", opts: ["腫瘤發生率", "生殖能力下降", "死亡率", "基因突變率"], ans: 2 },
-  { id: 54, q: "下列何者不屬於「健康食品個案審查查驗登記」初審時應依法檢具之文件資料？", opts: ["產品原料成分規格含量表", "產品之安全及保健功效評估報告", "進口完稅證明", "產品製程概要"], ans: 2 },
-  { id: 55, q: "以健康食品「調節血糖」功效評估為例，動物實驗常使用何種化學藥劑來破壞胰臟β細胞，誘導成為糖尿病模式鼠？", opts: ["四氯化碳（CCI4）", "鏈脲佐菌素 （STZ, streptozotocin）", "乙醯胺基苯酚", "酒精液態飼料"], ans: 1 },
-  { id: 56, q: "健康食品的「抗疲勞」功能評估方法中，下列哪一項屬於「機轉指標」而非體能表現指標？", opts: ["肌肉組織能源儲存指標（如肝醣）", "無氧動力", "最大有氧動力", "瞬發力"], ans: 0 },
-  { id: 57, q: "依據健康食品管理法規定，健康食品必須標示於容器、包裝或說明書上之項目，不包含下列何者？", opts: ["核准之保健功效", "許可證字號、「健康食品」字樣及標準圖樣", "符合 HACCP 與 ISO22000 認證標章", "產品之有效日期、保存方法及條件"], ans: 2 },
-  { id: 58, q: "健康食品安全評估的「3R」原則，不包含下列哪一項？", opts: ["取代（Replace）", "重複（Repeat）", "減量 （Reduce）", "精緻化（Refine）"], ans: 1 },
-  { id: 59, q: "國內對食品原料「輔酵素 Q10」的使用限制及標示規定，下列何者為非？", opts: ["每日食用限量30毫克", "15 歲以下小孩不宜食用，且需標示", "懷孕或哺乳期間婦女不宜食用，且需標示", "服用抗凝血藥品病患可酌量食用"], ans: 3 },
-  { id: 60, q: "以「牛樟芝固態培養菌絲體」製成膠囊申請健康食品認證時，依據原料特性，其安全性評估原則上應歸屬於第幾類？", opts: ["第一類", "第二類", "第三類", "第四類"], ans: 1 },
-  { id: 61, q: "向衛生福利部申請健康食品查驗登記，若功效評估試驗是「人體食用研究」，下列程序何者不正確？", opts: ["應有人體研究倫理審查委員會同意書 （IRB）", "計畫書應有研究對象之實施方法及基本資料", "應有每日飲食追蹤紀錄以排除干擾", "只要有營養師參與即可，免醫師參與"], ans: 3 },
-  { id: 62, q: "腸道保健食品中常使用的乳酸菌，下列何種菌株因具有抗藥性基因轉移疑慮，已被衛福部公告自107 年7月起「限制不得作為食品原料使用」？", opts: ["布拉迪酵母菌", "嗜熱鏈球菌", "糞腸球菌（Enterococcus faecalis）", "龍根菌"], ans: 2 },
-  { id: 63, q: "若一健康食品欲申請查驗登記，其安全性歸屬於第三類，則應檢具哪些安全評估試驗資料？", opts: ["僅需28天餵食毒性試驗", "基因毒性試驗、28天餵食毒性試驗、致癌性試驗", "僅需基因毒性試驗", "基因毒性試驗、90天餵食毒性試驗、致畸胎試驗"], ans: 3 },
-  { id: 64, q: "依據「不易形成體脂肪」保健功效評估方法，動物實驗常使用下列何種造症模型來評估產品功效？", opts: ["四氯化碳誘發肝損傷模型", "高脂飲食誘導肥胖模型", "鏈脲佐菌素（STZ）誘發糖尿病模型", "自發性高血壓大鼠模型（SHR）"], ans: 1 },
-  { id: 65, q: "下列何者不是健康食品「牙齒保健功效」評估方法中明訂須檢測的指標？", opts: ["牙菌斑酸鹼值", "牙菌斑堆積量", "實際蛀牙數量", "牙菌斑內突變形鏈球菌數量"], ans: 2 },
-  { id: 66, q: "業者向衛生福利部申請健康食品查驗登記許可文件有效期限之展延，何者不是衛生福利部不予登記並發駁回書函之主要原因？", opts: ["原許可文件已逾有效期限者", "非原許可證有效期限期滿前三個月內辦理者", "成分含量表與原登記內容不符者", "未於提出申請時繳納審查費"], ans: 3 },
-  { id: 67, q: "紅麴保健食品在「調節血脂」功效評估上，其活性指標成分 Monacolin K 主要能競爭性抑制肝臟中哪一種關鍵酵素，進而降低膽固醇合成？", opts: ["HMG-CoA 還原酶（HMG-CoA reductase）", "澱粉液化酶", "脂蛋白脂解酶", "脂肪酸合成酶"], ans: 0 },
-  { id: 68, q: "下列何者為目前已通過健康食品「延緩衰老」功能認證產品中常見的植物萃取保健成分原料？", opts: ["燕麥β-葡聚醣", "管花肉蓯蓉苯乙醇苷", "植物固醇", "紅麴"], ans: 1 },
-  { id: 69, q: "每日容許攝取量（ADI）是如何計算得出的？", opts: ["NOAEL 除以安全係數", "LD50 除以安全係數", "NOAEL 乘以安全係數", "LD50 乘以安全係數"], ans: 3 }, // 根據原檔內容保留 D
-  { id: 70, q: "國內健康食品許可證核發，下列何者「非」牙齒保健功效試驗結果判定得合法宣稱之詞句？", opts: ["有助於提升口腔內牙菌斑酸鹼值", "有助於減少掉牙", "有助於減少口腔內牙菌斑堆積量", "有助於減少口腔內牙菌斑內突變形鏈球菌數量"], ans: 1 },
-  { id: 71, q: "在保健食品功效評估中、「輔助調整過敏體質」通常會檢測並觀察產品能否輔助降低哪一種與過敏反應最直接相關的特異性免疫球蛋白？", opts: ["IgA", "IgG", "IgE", "IgM"], ans: 2 },
-  { id: 72, q: "下列保健原料中，何者沒有「減重及體重維持」的科學功效，因而不適用於「不易形成體脂肪」之功效訴求？", opts: ["中鏈脂肪酸（MCT）", "輔酵素 Q10", "幾丁聚醣（甲殼素）", "茶多酚（兒茶素）"], ans: 1 },
-  { id: 73, q: "食品毒理學中，用以推算人體「每日容許攝取量（ADI）」的關鍵數值為何？", opts: ["致死劑量（LD50）", "最大耐受劑量 （MTD）", "半數有效劑量（ED50）", "無可見不良作用劑量（NOAEL）"], ans: 3 },
-  { id: 74, q: "若健康食品原料使用「冬蟲夏草菌絲體」，下列標示規定何者敘述有誤？", opts: ["需於外包裝加註「本產品非中藥材冬蟲夏草之製品」之警語", "「冬蟲夏草菌絲體」7個字，字體大小必須完全一致", "可直接使用菌株英文名稱，不需標示中文名稱", "需備有菌株鑑定證明或分離來源等相關文件"], ans: 2 },
-  { id: 75, q: "評估「調節血脂」保健功能時，相對可不需要檢測以下哪一種指標？", opts: ["血糖", "總膽固醇（TC）", "三酸甘油酯 （TG）", "低密度脂蛋白膽固醇 （LDL-C）"], ans: 0 },
-  { id: 76, q: "健康食品若使用「可供食品使用原料彙整一覽表」中的原料，是否代表一定屬於第一類安全性產品？", opts: ["是，因已列入一覽表代表絕對安全", "是，只要是食品原料皆免做毒性試驗", "不一定，仍須綜合評估加工方法、食用方式、攝取量等因素判定", "不一定，所有原料皆須經過第四類完整評估"], ans: 2 },
-  { id: 77, q: "下列哪一種量表被明訂用於「膝關節保健」功效評估中，以評估受試者關節疼痛、僵硬感及活動困難程度？", opts: ["ADI 量表", "WOMAC 量表", "MOS 量表", "BMI量表"], ans: 1 },
-  { id: 78, q: "健康食品之安全評估分為四個類別產品，以下哪一類產品須進行最多項毒性測試？", opts: ["產品之原料為傳統食用且以通常加工食品形式供食者", "產品之原料為傳統食用而非以通常加工食品形式供食者", "產品之原料非屬傳統食用者", "產品之原料非屬傳統食用且含有致癌物之類似物者"], ans: 3 },
-  { id: 79, q: "下列何種安全評估分類的產品，必須執行「繁殖試驗」及「致癌性試驗」？", opts: ["第二類", "第四類", "第三類", "第一類"], ans: 1 },
-  { id: 80, q: "國內獲健字號的「茶類飲料」產品，最常通過申請的法定保健功效為下列何者？", opts: ["調節血脂與不易形成體脂肪", "改善睡眠與舒壓", "牙齒保健", "骨質保健"], ans: 0 }
-];
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-export default function App() {
-  const [appState, setAppState] = useState('start'); // start, playing, result
-  const [questions, setQuestions] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [selectedOpt, setSelectedOpt] = useState(null);
-  const [isAnswered, setIsAnswered] = useState(false);
+    // SVG 圖示元件 (替換原本的 lucide-react 以確保單一檔案能完美執行)
+    const BookOpenIcon = ({ className }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    );
+    const PlayIcon = ({ className }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    );
+    const CheckCircleIcon = ({ className }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+    );
+    const XCircleIcon = ({ className }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+    );
+    const ChevronRightIcon = ({ className }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    );
+    const RotateCcwIcon = ({ className }) => (
+      <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+    );
 
-  // 打亂陣列順序
-  const shuffleArray = (array) => {
-    let shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
+    // 80題題庫資料
+    const SOURCE_QUESTIONS = [
+      { id: 1, q: "以下哪一種保健功效評估，是現行 14 項功效中，極少數「僅以動物實驗模式」進行，未開放人體食用研究模式的評估方法？", opts: ["胃腸功能改善", "抗疲勞", "護肝功效（針對化學性肝損傷）", "延緩衰老"], ans: 2 },
+      { id: 2, q: "所謂的「分層試驗法 （Tiered Approach）」在健康食品安全評估中的意義為何？", opts: ["將受試動物分層飼養以避免干擾", "針對不同年齡層的人體進行試驗", "由基因毒性等體外試驗依序執行，並視結果評估後續活體動物試驗之必要性", "依產品售價分層決定試驗嚴格度"], ans: 2 },
+      { id: 3, q: "關於健康食品宣稱中有關「木糖醇」的牙齒保健功能，下列敘述何者有誤？", opts: ["有助於降低蛀牙的發生率", "有助於減少口腔內的牙菌斑", "有助於減少牙菌斑內突變形鏈球菌數量", "有助於減少牙周病"], ans: 3 },
+      { id: 4, q: "關於「紅麴健康食品規格標準」之規定，何者敘述不正確？", opts: ["每日攝取量所含 monacolin K 至少應達 4.8 毫克", "所含之橘黴素（citrinin）含量濃度應低於百萬分之二（2 ppm）", "產品除紅麴外之其他功效配方組成不得超過 20%", "應標示警語，不可與降血脂藥及葡萄柚合併使用"], ans: 2 },
+      { id: 5, q: "依據健康食品安全評估方法，動物實驗之對照組與試驗組在飼料設計上，應盡量保持何者近似等量？", opts: ["僅熱量", "僅蛋白質與脂肪", "僅維生素", "熱量、蛋白質、脂肪、礦物質及維生素"], ans: 3 },
+      { id: 6, q: "下列何種健康食品類別，必須進行「90 天餵食毒性試驗」？", opts: ["僅第一類", "僅第二類", "第一類與第二類", "第三類與第四類"], ans: 3 },
+      { id: 7, q: "健康食品之安全評估分類「第一類」是指下列何種情況？", opts: ["產品之原料為傳統食用且以通常加工食品形式供食者", "產品之原料非屬傳統食用者", "產品之原料為非通常加工製備者", "產品原料含有毒理學疑慮成分者"], ans: 0 },
+      { id: 8, q: "動物安全評估試驗應遵循優良實驗室操作規範，其英文簡稱為何？", opts: ["GMP", "GLP", "GHP", "GCP"], ans: 1 },
+      { id: 9, q: "安姆氏試驗 （Ames test）通常使用下列何種微生物作為指示菌種？", opts: ["沙門氏桿菌", "大腸桿菌", "金黃色葡萄球菌", "肉毒桿菌"], ans: 0 },
+      { id: 10, q: "食品安全性試驗中，所謂的「NOAEL」是指下列何者？", opts: ["無可見不良作用劑量", "最低可見不良作用劑量", "半數致死劑量", "每日容許攝取量"], ans: 0 },
+      { id: 11, q: "關於健康食品查驗登記的「第二軌（規格標準審查）」，目前公告僅開放哪兩項原料，只要成分達標即可確立保健功效，免除功效評估試驗？", opts: ["魚油與紅麴", "魚油與益生菌", "紅麴與燕麥", "益生菌與大豆異黃酮"], ans: 0 },
+      { id: 12, q: "在健康食品的安定性試驗中，若要估算包裝產品的儲藏期限常使用加速試驗，幾利用哪一種數值？", opts: ["Q10 值", "LD50 值", "D 值", "Z值"], ans: 0 },
+      { id: 13, q: "在健康食品的動物安全性評估中，若進行「體內基因毒性分析試驗」，每組至少需要幾隻動物？", opts: ["5隻", "10隻", "20隻", "50隻"], ans: 0 },
+      { id: 14, q: "若健康食品以「調節血糖」為保健功效，其人體臨床試驗通常會監測何種血液指標，以反映受試者過去 2~3 個月的長期血糖控制穩定度？", opts: ["空腹血糖值", "糖化血色素（HbA1c）", "胰島素耐受性", "尿糖值"], ans: 1 },
+      { id: 15, q: "申請健康食品查驗登記的產品，對其「保健功效評估報告」的審查要件，何者為非？", opts: ["試驗產品應是申請的最終產品", "人體食用研究者應有人體研究倫理審查委員會同意書", "動物實驗應有實驗動物照護及使用委員會或小組同意書", "應有二批結果報告，其中至少一批檢驗完成日期需在三年内"], ans: 3 },
+      { id: 16, q: "以下何者不是衛生福利部公告之健康食品保健功效項目？", opts: ["胃腸功能改善", "輔助調節血壓", "牙齒保健", "減肥"], ans: 3 },
+      { id: 17, q: "原「促進鐵可利用率保健功效評估方法」，近年已由衛生福利部修正更名為何？", opts: ["健康食品之輔助調節血鐵保健功效評估方法", "健康食品之預防貧血保健功效評估方法", "營養促進功效評估方法", "健康食品之補血保健功效評估方法"], ans: 0 },
+      { id: 18, q: "關於第二軌魚油類的健康食品規格審查標準，何者有誤？", opts: ["以傳統供食用之魚類萃取製成粉狀、膠囊或錠狀之食品", "可以與大蒜、紅麴等組成複方產品", "所含ω-3脂肪酸之純度應為百分之三十至五十", "可標示：「本產品可能有助於降低血中三酸甘油酯」"], ans: 1 },
+      { id: 19, q: "有關健康食品安全性評估之「第二類」產品，下列敘述何者正確？", opts: ["原料非屬傳統食用者", "須進行致癌性試驗", "免執行任何毒性試驗", "應進行基因毒性試驗與28 天餵食毒性試驗"], ans: 3 },
+      { id: 20, q: "進行 Ames test 時，除了觀察原試驗物質的毒性外，通常會加入何種物質以模擬哺乳動物體內的代謝活化反應？", opts: ["S9 混合物", "ATP 溶液", "肝醣", "輔酶 Q10"], ans: 0 },
+      { id: 21, q: "目前以「膠原蛋白」為主原料並通過健康食品認證之產品，其主要訴求法定保健功效通常為何？", opts: ["延緩衰老", "美白保濕", "骨質保健", "輔助調整過敏體質"], ans: 2 },
+      { id: 22, q: "裝飲用水之寶特瓶可能隨時間推移及溫度上升使得寶特瓶中塑化劑及何種物質釋放到水中，可能有害健康？", opts: ["銻", "砷", "鉻", "鉑"], ans: 0 },
+      { id: 23, q: "依據健康食品安全評估方法，若產品屬於第三類（非屬傳統食用者），其無可見不良作用劑量（NOAEL） 應大於或等於人體建議攝取量的多少倍？", opts: ["10 倍", "30 倍", "60 倍", "100 倍"], ans: 3 },
+      { id: 24, q: "健康食品安全評估分為四個類別，其中哪一類產品必須進行「最多項」的毒理測試？", opts: ["第一類", "第二類", "第四類", "第三類"], ans: 2 },
+      { id: 25, q: "下列何者不屬於國內「輔助調節血鐵保健功效評估方法」須檢測的指標？", opts: ["體脂肪變化", "紅血球指標", "發炎指標", "鐵營養相關血液生化指標"], ans: 0 },
+      { id: 26, q: "健康食品之功能性評估中，如使用動物試驗，試驗過程必須遵守下列何種法規規範？", opts: ["食品安全衛生管理法", "健康食品管理法", "動物保護法", "健康食品工廠良好作業規範"], ans: 2 },
+      { id: 27, q: "依據近年修正之「健康食品安全評估方法」，已經刪除並由其他試驗替代的動物試驗項目為下列何者？", opts: ["口服急毒性試驗", "致癌性試驗", "繁殖試驗", "基因毒性試驗"], ans: 0 },
+      { id: 28, q: "下列何種方法的數據不須要重覆至少 3 次才適合進行統計分析？", opts: ["順位法", "類別標示法", "直線標示法", "參考比較法"], ans: 0 },
+      { id: 29, q: "何者為健康食品管理法所稱之保健功效？a.增進民眾健康、減少疾病危害風險 b.具有實質科學證據之功效 c.治療、矯正人類疾病之效能 d.經中央主管機關公告者", opts: ["abc", "bcd", "acd", "abd"], ans: 3 },
+      { id: 30, q: "健康食品功效之宣稱及標示，下列哪一種敘述是不被允許的？", opts: ["敘述攝取特定營養素對人體生理結構之影響", "宣稱具有治療或矯正人類疾病之醫療效能", "提示可補充人體缺乏之營養素", "標示該產品具法定核可之保健功效"], ans: 1 },
+      { id: 31, q: "「無可見不良作用劑量（NOAEL）」通常可由下列哪一項毒性試驗的結果中推算求得？", opts: ["安姆氏試驗", "急性毒性試驗", "90天餵食毒性試驗", "微核試驗"], ans: 2 },
+      { id: 32, q: "若一項試驗物質在 Ames test 中，只有在加入 S9 mixture 的條件下才呈現陽性反應，這代表什麼意義？", opts: ["該物質本身具有強烈致突變性", "該物質的代謝產物具有致突變性", "該物質及其代謝物皆無致突變性", "S9 mixture 本身有毒"], ans: 1 },
+      { id: 33, q: "在評估化學物質急毒性的指標中，LD50代表的意義為何？", opts: ["最低致死劑量", "半數致死劑量", "最大無作用量", "每日容許攝取量"], ans: 1 },
+      { id: 34, q: "有一乳酸菌保健產品，其菌株為「自行篩選」自國人糞便者，欲申請健康食品認證，下列敘述何者錯誤？", opts: ["在毒理安全性分類上可直接歸屬為第一類", "申請時應附有菌株鑑定報告", "其安全性評估至少需歸屬為第二類或以上", "若菌株與藥品為相同來源，應與藥品適當區隔"], ans: 0 },
+      { id: 35, q: "下列哪一種植物性保健原料，在功效評估與營養宣稱上，絕對「不可」稱其為維生素 A的前驅物（無法在體內轉化為維生素 A）？", opts: ["β-胡蘿蔔素", "茄紅素", "隱黃素", "d-胡蘿蔔素"], ans: 1 },
+      { id: 36, q: "進行健康食品保健功效評估之「動物實驗」時，依規定每組動物至少為8隻；但若使用小白鼠（鼷鼠），每組至少需幾隻？", opts: ["5隻", "8隻", "10隻", "20隻"], ans: 2 },
+      { id: 37, q: "欲評估產品是否能「減少腸內有害菌」以改善胃腸功能，最常檢測下列何種菌作為不良指標？", opts: ["產氣莢膜梭菌", "雙岐桿菌", "嗜熱鏈球菌", "乾酪乳酸桿菌"], ans: 0 },
+      { id: 38, q: "關於健康食品安全評估之「第三類」產品，下列敘述何者正確？", opts: ["產品原料為傳統食用且以通常加工食品形式供食者", "應進行基因毒性、90天餵食毒性及致畸胎試驗", "僅需進行基因毒性與28天餵食毒性試驗", "必須進行致癌性試驗與繁殖試驗"], ans: 1 },
+      { id: 39, q: "某健康食品之人體建議攝食量為每天 1.2g，體重以60 kg 計算，而該產品之動物 NOAEL 值為 1.2g/kg，請問其安全邊際（MOS）為幾倍？", opts: ["30倍", "60倍", "100倍", "120倍"], ans: 1 },
+      { id: 40, q: "關於健康食品的安全性評估，下列敘述何者錯誤？", opts: ["最終產品的安全性分類需整體評估配方、製程、攝食量等", "對安全性分類有疑慮可事先向食藥署或查驗中心申請判定", "最終分類判定由健康食品審議小組決定", "只要原料通過農藥殘留檢驗，即可免除所有安全性試驗"], ans: 3 },
+      { id: 41, q: "當某一保健食品之建議每日攝取量較高，且屬於安全性第三類時，其安全邊際（MOS）至少應達到多少？", opts: ["30倍", "60倍", "100倍", "1000倍"], ans: 2 },
+      { id: 42, q: "執行健康食品的動物安全性評估時，依據規範，「90 天餵食毒性試驗」每個劑量組別至少需要多少隻實驗動物存活以供毒性評估？", opts: ["雄、雌各 5隻", "雄、雌各10隻", "雄、雌各20隻", "雄、雌各50隻"], ans: 1 },
+      { id: 43, q: "依據現行法規，申請健康食品安全性評估之「第四類（含有致癌物之類似物者）」，必須進行下列何種完整測試？", opts: ["僅需進行基因毒性試驗", "僅需進行 28 天餵食毒性試驗", "須進行基因毒性、90 天餵食毒性、致畸胎、繁殖試驗及致癌性試驗", "直接禁止申請，免做試驗"], ans: 2 },
+      { id: 44, q: "以下哪一種飽和脂肪酸比較不容易增加血膽固醇？", opts: ["肉豆蔻酸", "月桂酸", "棕櫚酸", "硬脂酸"], ans: 3 },
+      { id: 45, q: "下列何者不屬於「基因毒性試驗」評估的範疇？", opts: ["微生物基因突變分析", "體外哺乳類細胞染色體異常分析", "動物體內微核試驗", "28天餵食試驗"], ans: 3 },
+      { id: 46, q: "依現行健康食品安全評估方法，關於「動物體內基因毒性分析」，下列敘述何者正確？", opts: ["為所有類別產品必做的第一項試驗", "完全無法用體外試驗替代", "若體外測試評估有基因毒性者，應停止後續產品研發，不建議為健康食品", "僅針對第一類產品實施"], ans: 2 },
+      { id: 47, q: "健康食品安全性評估之基因毒性測試中，常使用的「安姆氏試驗（Ames test）」，主要使用的指示菌種為何？", opts: ["大腸桿菌", "枯草桿菌", "啤酒酵母菌", "沙門氏菌"], ans: 3 },
+      { id: 48, q: "依據「護肝保健功效評估方法」，下列何者不是可進行的肝損傷誘導模式？", opts: ["四氯化碳誘發化學性肝損傷", "酒精液態飼料誘導酒精性脂肪肝", "止痛藥物乙醯胺基苯酚誘導化學性肝炎損傷", "疲勞性肝損傷"], ans: 3 },
+      { id: 49, q: "第三類健康食品在安全評估時，其計算出的安全邊際（MOS）倍數應大於或等於多少？", opts: ["100倍", "60倍", "30倍", "10倍"], ans: 0 },
+      { id: 50, q: "健康食品安全性評估報告的審查要件中，病理組織切片檢驗報告應由何人判讀並簽名以示負責？", opts: ["實驗室操作技術員", "公司法務主管", "具有動物病理經驗之獸醫師或醫師", "衛生福利部審查委員"], ans: 2 },
+      { id: 51, q: "衛生福利部於近年最新公告新增的第 14項健康食品保健功效為何？", opts: ["改善視力保健", "膝關節保健", "舒緩壓力與情緒", "改善睡眠品質"], ans: 1 },
+      { id: 52, q: "在動物試驗中，實驗動物的福利越來越受重視，下列何者為 3R 原則中的「Refine（精緻化）」？", opts: ["完全不使用動物", "減少動物使用數量", "用電腦模擬代替活體", "降低動物在實驗過程中的痛苦與緊迫"], ans: 3 },
+      { id: 53, q: "急性毒性試驗 （LD50）主要觀察實驗動物在短時間內暴露於受試物質後，最直接的反應為何？", opts: ["腫瘤發生率", "生殖能力下降", "死亡率", "基因突變率"], ans: 2 },
+      { id: 54, q: "下列何者不屬於「健康食品個案審查查驗登記」初審時應依法檢具之文件資料？", opts: ["產品原料成分規格含量表", "產品之安全及保健功效評估報告", "進口完稅證明", "產品製程概要"], ans: 2 },
+      { id: 55, q: "以健康食品「調節血糖」功效評估為例，動物實驗常使用何種化學藥劑來破壞胰臟β細胞，誘導成為糖尿病模式鼠？", opts: ["四氯化碳（CCI4）", "鏈脲佐菌素 （STZ, streptozotocin）", "乙醯胺基苯酚", "酒精液態飼料"], ans: 1 },
+      { id: 56, q: "健康食品的「抗疲勞」功能評估方法中，下列哪一項屬於「機轉指標」而非體能表現指標？", opts: ["肌肉組織能源儲存指標（如肝醣）", "無氧動力", "最大有氧動力", "瞬發力"], ans: 0 },
+      { id: 57, q: "依據健康食品管理法規定，健康食品必須標示於容器、包裝或說明書上之項目，不包含下列何者？", opts: ["核准之保健功效", "許可證字號、「健康食品」字樣及標準圖樣", "符合 HACCP 與 ISO22000 認證標章", "產品之有效日期、保存方法及條件"], ans: 2 },
+      { id: 58, q: "健康食品安全評估的「3R」原則，不包含下列哪一項？", opts: ["取代（Replace）", "重複（Repeat）", "減量 （Reduce）", "精緻化（Refine）"], ans: 1 },
+      { id: 59, q: "國內對食品原料「輔酵素 Q10」的使用限制及標示規定，下列何者為非？", opts: ["每日食用限量30毫克", "15 歲以下小孩不宜食用，且需標示", "懷孕或哺乳期間婦女不宜食用，且需標示", "服用抗凝血藥品病患可酌量食用"], ans: 3 },
+      { id: 60, q: "以「牛樟芝固態培養菌絲體」製成膠囊申請健康食品認證時，依據原料特性，其安全性評估原則上應歸屬於第幾類？", opts: ["第一類", "第二類", "第三類", "第四類"], ans: 1 },
+      { id: 61, q: "向衛生福利部申請健康食品查驗登記，若功效評估試驗是「人體食用研究」，下列程序何者不正確？", opts: ["應有人體研究倫理審查委員會同意書 （IRB）", "計畫書應有研究對象之實施方法及基本資料", "應有每日飲食追蹤紀錄以排除干擾", "只要有營養師參與即可，免醫師參與"], ans: 3 },
+      { id: 62, q: "腸道保健食品中常使用的乳酸菌，下列何種菌株因具有抗藥性基因轉移疑慮，已被衛福部公告自107 年7月起「限制不得作為食品原料使用」？", opts: ["布拉迪酵母菌", "嗜熱鏈球菌", "糞腸球菌（Enterococcus faecalis）", "龍根菌"], ans: 2 },
+      { id: 63, q: "若一健康食品欲申請查驗登記，其安全性歸屬於第三類，則應檢具哪些安全評估試驗資料？", opts: ["僅需28天餵食毒性試驗", "基因毒性試驗、28天餵食毒性試驗、致癌性試驗", "僅需基因毒性試驗", "基因毒性試驗、90天餵食毒性試驗、致畸胎試驗"], ans: 3 },
+      { id: 64, q: "依據「不易形成體脂肪」保健功效評估方法，動物實驗常使用下列何種造症模型來評估產品功效？", opts: ["四氯化碳誘發肝損傷模型", "高脂飲食誘導肥胖模型", "鏈脲佐菌素（STZ）誘發糖尿病模型", "自發性高血壓大鼠模型（SHR）"], ans: 1 },
+      { id: 65, q: "下列何者不是健康食品「牙齒保健功效」評估方法中明訂須檢測的指標？", opts: ["牙菌斑酸鹼值", "牙菌斑堆積量", "實際蛀牙數量", "牙菌斑內突變形鏈球菌數量"], ans: 2 },
+      { id: 66, q: "業者向衛生福利部申請健康食品查驗登記許可文件有效期限之展延，何者不是衛生福利部不予登記並發駁回書函之主要原因？", opts: ["原許可文件已逾有效期限者", "非原許可證有效期限期滿前三個月內辦理者", "成分含量表與原登記內容不符者", "未於提出申請時繳納審查費"], ans: 3 },
+      { id: 67, q: "紅麴保健食品在「調節血脂」功效評估上，其活性指標成分 Monacolin K 主要能競爭性抑制肝臟中哪一種關鍵酵素，進而降低膽固醇合成？", opts: ["HMG-CoA 還原酶（HMG-CoA reductase）", "澱粉液化酶", "脂蛋白脂解酶", "脂肪酸合成酶"], ans: 0 },
+      { id: 68, q: "下列何者為目前已通過健康食品「延緩衰老」功能認證產品中常見的植物萃取保健成分原料？", opts: ["燕麥β-葡聚醣", "管花肉蓯蓉苯乙醇苷", "植物固醇", "紅麴"], ans: 1 },
+      { id: 69, q: "每日容許攝取量（ADI）是如何計算得出的？", opts: ["NOAEL 除以安全係數", "LD50 除以安全係數", "NOAEL 乘以安全係數", "LD50 乘以安全係數"], ans: 3 }, 
+      { id: 70, q: "國內健康食品許可證核發，下列何者「非」牙齒保健功效試驗結果判定得合法宣稱之詞句？", opts: ["有助於提升口腔內牙菌斑酸鹼值", "有助於減少掉牙", "有助於減少口腔內牙菌斑堆積量", "有助於減少口腔內牙菌斑內突變形鏈球菌數量"], ans: 1 },
+      { id: 71, q: "在保健食品功效評估中、「輔助調整過敏體質」通常會檢測並觀察產品能否輔助降低哪一種與過敏反應最直接相關的特異性免疫球蛋白？", opts: ["IgA", "IgG", "IgE", "IgM"], ans: 2 },
+      { id: 72, q: "下列保健原料中，何者沒有「減重及體重維持」的科學功效，因而不適用於「不易形成體脂肪」之功效訴求？", opts: ["中鏈脂肪酸（MCT）", "輔酵素 Q10", "幾丁聚醣（甲殼素）", "茶多酚（兒茶素）"], ans: 1 },
+      { id: 73, q: "食品毒理學中，用以推算人體「每日容許攝取量（ADI）」的關鍵數值為何？", opts: ["致死劑量（LD50）", "最大耐受劑量 （MTD）", "半數有效劑量（ED50）", "無可見不良作用劑量（NOAEL）"], ans: 3 },
+      { id: 74, q: "若健康食品原料使用「冬蟲夏草菌絲體」，下列標示規定何者敘述有誤？", opts: ["需於外包裝加註「本產品非中藥材冬蟲夏草之製品」之警語", "「冬蟲夏草菌絲體」7個字，字體大小必須完全一致", "可直接使用菌株英文名稱，不需標示中文名稱", "需備有菌株鑑定證明或分離來源等相關文件"], ans: 2 },
+      { id: 75, q: "評估「調節血脂」保健功能時，相對可不需要檢測以下哪一種指標？", opts: ["血糖", "總膽固醇（TC）", "三酸甘油酯 （TG）", "低密度脂蛋白膽固醇 （LDL-C）"], ans: 0 },
+      { id: 76, q: "健康食品若使用「可供食品使用原料彙整一覽表」中的原料，是否代表一定屬於第一類安全性產品？", opts: ["是，因已列入一覽表代表絕對安全", "是，只要是食品原料皆免做毒性試驗", "不一定，仍須綜合評估加工方法、食用方式、攝取量等因素判定", "不一定，所有原料皆須經過第四類完整評估"], ans: 2 },
+      { id: 77, q: "下列哪一種量表被明訂用於「膝關節保健」功效評估中，以評估受試者關節疼痛、僵硬感及活動困難程度？", opts: ["ADI 量表", "WOMAC 量表", "MOS 量表", "BMI量表"], ans: 1 },
+      { id: 78, q: "健康食品之安全評估分為四個類別產品，以下哪一類產品須進行最多項毒性測試？", opts: ["產品之原料為傳統食用且以通常加工食品形式供食者", "產品之原料為傳統食用而非以通常加工食品形式供食者", "產品之原料非屬傳統食用者", "產品之原料非屬傳統食用且含有致癌物之類似物者"], ans: 3 },
+      { id: 79, q: "下列何種安全評估分類的產品，必須執行「繁殖試驗」及「致癌性試驗」？", opts: ["第二類", "第四類", "第三類", "第一類"], ans: 1 },
+      { id: 80, q: "國內獲健字號的「茶類飲料」產品，最常通過申請的法定保健功效為下列何者？", opts: ["調節血脂與不易形成體脂肪", "改善睡眠與舒壓", "牙齒保健", "骨質保健"], ans: 0 }
+    ];
 
-  const startQuiz = () => {
-    setQuestions(shuffleArray(SOURCE_QUESTIONS));
-    setCurrentIndex(0);
-    setScore(0);
-    setSelectedOpt(null);
-    setIsAnswered(false);
-    setAppState('playing');
-  };
+    function App() {
+      const [appState, setAppState] = useState('start'); 
+      const [questions, setQuestions] = useState([]);
+      const [currentIndex, setCurrentIndex] = useState(0);
+      const [score, setScore] = useState(0);
+      const [selectedOpt, setSelectedOpt] = useState(null);
+      const [isAnswered, setIsAnswered] = useState(false);
 
-  const handleOptionClick = (idx) => {
-    if (isAnswered) return;
-    setSelectedOpt(idx);
-    setIsAnswered(true);
-    if (idx === questions[currentIndex].ans) {
-      setScore(score + 1);
-    }
-  };
+      const shuffleArray = (array) => {
+        let shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      };
 
-  const nextQuestion = () => {
-    if (currentIndex + 1 < questions.length) {
-      setCurrentIndex(currentIndex + 1);
-      setSelectedOpt(null);
-      setIsAnswered(false);
-    } else {
-      setAppState('result');
-    }
-  };
+      const startQuiz = () => {
+        setQuestions(shuffleArray(SOURCE_QUESTIONS));
+        setCurrentIndex(0);
+        setScore(0);
+        setSelectedOpt(null);
+        setIsAnswered(false);
+        setAppState('playing');
+      };
 
-  const optionLetters = ['A', 'B', 'C', 'D'];
+      const handleOptionClick = (idx) => {
+        if (isAnswered) return;
+        setSelectedOpt(idx);
+        setIsAnswered(true);
+        if (idx === questions[currentIndex].ans) {
+          setScore(score + 1);
+        }
+      };
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
-      {/* Start Screen */}
-      {appState === 'start' && (
-        <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden text-center p-8 mt-10 border border-slate-100">
-          <div className="mx-auto bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mb-6">
-            <BookOpen className="text-indigo-600 w-10 h-10" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-4 tracking-tight">國立臺東大學<br/>保健食品期末測驗</h1>
-          <p className="text-slate-500 mb-8 leading-relaxed">
-            本題庫共包含 80 題選擇題，每次測驗將為你隨機打亂題目順序。作答後會即時顯示正確答案，幫助你加深印象。
-          </p>
-          <button
-            onClick={startQuiz}
-            className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <Play className="w-5 h-5 mr-2 fill-current" />
-            開始刷題 (共80題)
-          </button>
-        </div>
-      )}
+      const nextQuestion = () => {
+        if (currentIndex + 1 < questions.length) {
+          setCurrentIndex(currentIndex + 1);
+          setSelectedOpt(null);
+          setIsAnswered(false);
+        } else {
+          setAppState('result');
+        }
+      };
 
-      {/* Quiz Screen */}
-      {appState === 'playing' && questions.length > 0 && (
-        <div className="max-w-2xl w-full">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6 px-2">
-            <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
-              Question {currentIndex + 1} of {questions.length}
-            </div>
-            <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full">
-              得分: {score}
-            </div>
-          </div>
+      const optionLetters = ['A', 'B', 'C', 'D'];
 
-          {/* Progress Bar */}
-          <div className="w-full bg-slate-200 rounded-full h-2 mb-8">
-            <div
-              className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentIndex) / questions.length) * 100}%` }}
-            ></div>
-          </div>
-
-          {/* Question Card */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-slate-100 mb-6">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 leading-snug mb-8">
-              {questions[currentIndex].q}
-            </h2>
-
-            <div className="space-y-3">
-              {questions[currentIndex].opts.map((opt, idx) => {
-                const isCorrectAns = idx === questions[currentIndex].ans;
-                const isSelected = idx === selectedOpt;
-                
-                let btnClass = "w-full text-left px-5 py-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ";
-                
-                if (!isAnswered) {
-                  btnClass += "border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700";
-                } else {
-                  if (isCorrectAns) {
-                    btnClass += "border-emerald-500 bg-emerald-50 text-emerald-800";
-                  } else if (isSelected) {
-                    btnClass += "border-red-400 bg-red-50 text-red-800";
-                  } else {
-                    btnClass += "border-slate-100 bg-slate-50 text-slate-400 opacity-60";
-                  }
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    disabled={isAnswered}
-                    onClick={() => handleOptionClick(idx)}
-                    className={btnClass}
-                  >
-                    <div className="flex items-center">
-                      <span className="font-bold mr-4 w-6 text-center">{optionLetters[idx]}</span>
-                      <span className="text-base sm:text-lg">{opt}</span>
-                    </div>
-                    {isAnswered && isCorrectAns && <CheckCircle2 className="w-6 h-6 text-emerald-500 flex-shrink-0" />}
-                    {isAnswered && isSelected && !isCorrectAns && <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Next Button Section */}
-          <div className="flex justify-end h-14">
-            {isAnswered && (
-              <button
-                onClick={nextQuestion}
-                className="inline-flex items-center px-6 py-3 text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all animate-fade-in"
-              >
-                {currentIndex + 1 === questions.length ? '查看結果' : '下一題'}
-                <ChevronRight className="w-5 h-5 ml-1" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Result Screen */}
-      {appState === 'result' && (
-        <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden text-center p-8 mt-10 border border-slate-100">
-          <div className="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-emerald-100">
-             <CheckCircle2 className="w-12 h-12 text-emerald-500" />
-          </div>
-          <h2 className="text-3xl font-extrabold text-slate-800 mb-2">測驗完成！</h2>
-          <p className="text-slate-500 text-lg mb-8">辛苦了，來看看你的成績吧！</p>
+      return (
+        <div className="min-h-screen text-slate-800 font-sans flex flex-col items-center py-10 px-4 sm:px-6 lg:px-8">
           
-          <div className="bg-slate-50 rounded-2xl p-8 mb-8 border border-slate-100">
-            <div className="text-6xl font-black text-indigo-600 mb-2">
-              {Math.round((score / questions.length) * 100)}<span className="text-3xl text-slate-400 font-bold ml-1">分</span>
+          {/* 首頁 */}
+          {appState === 'start' && (
+            <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden text-center p-8 mt-10 border border-slate-100">
+              <div className="mx-auto bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mb-6">
+                <BookOpenIcon className="text-indigo-600 w-10 h-10" />
+              </div>
+              <h1 className="text-3xl font-bold text-slate-800 mb-4 tracking-tight">國立臺東大學<br/>保健食品期末測驗</h1>
+              <p className="text-slate-500 mb-8 leading-relaxed">
+                本題庫共包含 80 題選擇題，每次測驗將為你隨機打亂題目順序。作答後會即時顯示正確答案，幫助你加深印象。
+              </p>
+              <button
+                onClick={startQuiz}
+                className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <PlayIcon className="w-5 h-5 mr-2" />
+                開始刷題 (共80題)
+              </button>
             </div>
-            <p className="text-slate-500 font-medium">答對了 {score} / {questions.length} 題</p>
-          </div>
+          )}
 
-          <button
-            onClick={startQuiz}
-            className="w-full inline-flex items-center justify-center px-6 py-4 text-lg font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
-          >
-            <RotateCcw className="w-5 h-5 mr-2" />
-            重新隨機測驗
-          </button>
+          {/* 測驗畫面 */}
+          {appState === 'playing' && questions.length > 0 && (
+            <div className="max-w-2xl w-full">
+              <div className="flex justify-between items-center mb-6 px-2">
+                <div className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+                  Question {currentIndex + 1} of {questions.length}
+                </div>
+                <div className="text-sm font-bold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full">
+                  得分: {score}
+                </div>
+              </div>
+
+              <div className="w-full bg-slate-200 rounded-full h-2 mb-8">
+                <div
+                  className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${((currentIndex) / questions.length) * 100}%` }}
+                ></div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-slate-100 mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-800 leading-snug mb-8">
+                  {questions[currentIndex].q}
+                </h2>
+
+                <div className="space-y-3">
+                  {questions[currentIndex].opts.map((opt, idx) => {
+                    const isCorrectAns = idx === questions[currentIndex].ans;
+                    const isSelected = idx === selectedOpt;
+                    
+                    let btnClass = "w-full text-left px-5 py-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ";
+                    
+                    if (!isAnswered) {
+                      btnClass += "border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 text-slate-700 cursor-pointer";
+                    } else {
+                      if (isCorrectAns) {
+                        btnClass += "border-emerald-500 bg-emerald-50 text-emerald-800 cursor-default";
+                      } else if (isSelected) {
+                        btnClass += "border-red-400 bg-red-50 text-red-800 cursor-default";
+                      } else {
+                        btnClass += "border-slate-100 bg-slate-50 text-slate-400 opacity-60 cursor-default";
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        disabled={isAnswered}
+                        onClick={() => handleOptionClick(idx)}
+                        className={btnClass}
+                      >
+                        <div className="flex items-center">
+                          <span className="font-bold mr-4 w-6 text-center">{optionLetters[idx]}</span>
+                          <span className="text-base sm:text-lg">{opt}</span>
+                        </div>
+                        {isAnswered && isCorrectAns && <CheckCircleIcon className="w-6 h-6 text-emerald-500 flex-shrink-0" />}
+                        {isAnswered && isSelected && !isCorrectAns && <XCircleIcon className="w-6 h-6 text-red-500 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end h-14">
+                {isAnswered && (
+                  <button
+                    onClick={nextQuestion}
+                    className="inline-flex items-center px-6 py-3 text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md transition-all"
+                  >
+                    {currentIndex + 1 === questions.length ? '查看結果' : '下一題'}
+                    <ChevronRightIcon className="w-5 h-5 ml-1" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 結果畫面 */}
+          {appState === 'result' && (
+            <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl overflow-hidden text-center p-8 mt-10 border border-slate-100">
+              <div className="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-emerald-100">
+                 <CheckCircleIcon className="w-12 h-12 text-emerald-500" />
+              </div>
+              <h2 className="text-3xl font-extrabold text-slate-800 mb-2">測驗完成！</h2>
+              <p className="text-slate-500 text-lg mb-8">辛苦了，來看看你的成績吧！</p>
+              
+              <div className="bg-slate-50 rounded-2xl p-8 mb-8 border border-slate-100">
+                <div className="text-6xl font-black text-indigo-600 mb-2">
+                  {Math.round((score / questions.length) * 100)}<span className="text-3xl text-slate-400 font-bold ml-1">分</span>
+                </div>
+                <p className="text-slate-500 font-medium">答對了 {score} / {questions.length} 題</p>
+              </div>
+
+              <button
+                onClick={startQuiz}
+                className="w-full inline-flex items-center justify-center px-6 py-4 text-lg font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+              >
+                <RotateCcwIcon className="w-5 h-5 mr-2" />
+                重新隨機測驗
+              </button>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
+
